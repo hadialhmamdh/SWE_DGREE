@@ -1,0 +1,114 @@
+(* Code from Practical Session 3 (pc) from 11/11/2025
+ *
+ * Programmer: Amit Rubin, 2025
+ *)
+
+
+(* 
+ * List.fold_left f init [a;b;c;d]       
+ *         ==       
+ * (f (f (f (f init a) b) c) d) 
+ *)
+
+open PC
+
+type ast = Number of int
+         | Add of (ast * ast)
+         | Mul of (ast * ast)
+         | Paren of ast
+
+
+let nt_number =
+  let char_list_to_int char_list =
+    let code_0 = Char.code '0' in
+    List.fold_left
+      (fun acc c -> acc * 10 + (Char.code c) - code_0)
+      0
+      char_list in
+  let nt = range '0' '9' in
+  let nt = star nt in
+  let nt2 = range '1' '9' in
+  let nt = caten nt2 nt in
+  let nt = pack nt (fun (c, cs) -> c :: cs) in
+  let nt_positive = pack nt (fun cs -> char_list_to_int cs) in
+  let nt_zero = pack (char '0') (fun _ -> 0) in
+  let nt_zero = not_followed_by nt_zero (range '0' '9') in
+  let nt = disj nt_positive nt_zero in
+  let nt = pack nt (fun n -> Number n) in
+  nt
+(* 
+ * Equivalently, we could've replaced the last two lines with:
+ * pack nt (fun n -> Number n)
+*)
+
+let rec nt_mul str idx = 
+  let nt_mulop = char '*' in
+  let nt = caten nt_mulop nt_parens in
+  let nt = pack nt (fun (_, e) -> e) in
+  let nt = star nt in
+  let nt = caten nt_parens nt in
+  let nt = pack nt (fun (hd, tl) ->
+      List.fold_left (fun acc next_paren -> Mul (acc, next_paren)) hd tl) in
+  nt str idx
+(* 
+ * Question: beforehand, in nt_number, we didn't pass the argument str idx.
+ * So why are we passing them now?
+ * Answer: because Ocaml demands that recursive functions get at least one parameter.
+ * 
+ * We are performing an Eta-expansion: given a function "let f = <body>" 
+ * that expects 2 arguments, we can rewrite it as
+ * let f a b = <body> a b
+ * 
+ * Why? Think about the following pieces of Python code
+ * <1>
+ * cos(3)
+ * 
+ * VS 
+ * <2>
+ * (lambda x: cos(x))(3)
+ * 
+ * Both do the same thing: calculate cos of 3.
+ * The second piece of code passes x along to cos. This modification
+ * is called an eta-expansion, and the mathematical principle behind it is
+ * called extensionality. 
+ * 
+ * Quoting Wikipedia:
+ * "In logic, extensionality, or extensional equality, refers to principles that 
+ * judge objects to be equal if they have the same external properties. It stands 
+ * in contrast to the concept of intensionality, which is concerned with whether 
+ * the internal definitions of objects are the same."
+ * 
+ * By giving nt_mul arguments we convince Ocaml that the expression really is a 
+ * recursive function, and thus we can use mutual recursion to call the other parser.
+ *)
+
+and nt_add str idx =
+  let nt_addop = char '+' in
+  let nt = caten nt_addop nt_mul in
+  let nt = pack nt (fun (_, e) -> e) in
+  let nt = star nt in
+  let nt = caten nt_mul nt in
+  let nt = pack nt (fun (hd, tl) ->
+      List.fold_left (fun acc next_mul -> Add (acc, next_mul)) hd tl) in
+  nt str idx
+
+and nt_parens (str : string) (idx : int) =
+  let nt_lparen = char '(' in
+  let nt_rparen = char ')' in
+  let nt = caten nt_lparen nt_exp in
+  let nt = pack nt (fun (_, e) -> e) in
+  let nt = caten nt nt_rparen in
+  let nt = pack nt (fun (e, _) -> e) in
+  let nt = disj nt nt_number in
+  nt str idx
+  
+
+and nt_exp (str : string) (idx : int) : ast parsing_result =
+  nt_add str idx
+
+let parser str =  (nt_exp str 0).found
+(* parser does the obvious thing: after I've read an entire legal expression,
+ * I no longer care about the index_from & index_to, only about the found. So,
+ * run the general parser beginning at index 0, then return the found field! *)
+
+let example_ast = parser "1+2+3*(4*(5+6)+7)"

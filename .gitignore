@@ -1,0 +1,50 @@
+# ===== OS / editor junk =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.swp
+
+# ===== IDEs =====
+.idea/
+*.iml
+.vs/
+*.user
+*.suo
+
+# ===== Java / Maven =====
+target/
+*.class
+dependency-reduced-pom.xml
+*.log
+
+# ===== C# / .NET =====
+[Bb]in/
+[Oo]bj/
+TestResults/
+
+# ===== C / C++ build output =====
+out/
+cmake-build-*/
+*.o
+# ...except object files that are INPUTS to the lab assignments
+!LAB/Lab_e/*.o
+!LAB/Lab_5/startup.o
+!LAB/Lab_5/tests/*.o
+
+# LAB executables that the makefiles build from source
+LAB/Lab_1/Task_3/menu
+LAB/Lab_4/task1
+LAB/Lab_4/task4
+LAB/Lab_a/encoder
+
+# ===== Python =====
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ===== Secrets (never commit) =====
+.env
+*.pem
+*.key
